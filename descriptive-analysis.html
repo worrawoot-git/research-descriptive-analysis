@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>วิเคราะห์ข้อมูลเชิงพรรณนา (Descriptive Analysis)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --primary:#1d4ed8; --primary-soft:#dbeafe; --green:#059669; --amber:#d97706; --red:#dc2626; --violet:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.6}
+  header{background:linear-gradient(135deg,#1e3a8a,#2563eb 60%,#0891b2);color:#fff;padding:28px 16px 34px}
+  header .inner{max-width:1200px;margin:auto}
+  header h1{margin:0;font-size:1.7rem;font-weight:700}
+  header p{margin:4px 0 0;opacity:.9}
+  main{max-width:1200px;margin:-18px auto 40px;padding:0 16px}
+  .card{background:var(--card);border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.08);padding:20px;margin-bottom:18px;border:1px solid var(--line)}
+  .card h2{margin:0 0 14px;font-size:1.15rem;display:flex;align-items:center;gap:10px}
+  .step{display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;align-items:center;justify-content:center;font-size:.9rem;font-weight:700}
+  .drop{border:2px dashed #93c5fd;background:#f8fbff;border-radius:12px;padding:26px;text-align:center;cursor:pointer;transition:.2s}
+  .drop:hover,.drop.over{background:var(--primary-soft);border-color:var(--primary)}
+  .drop input{display:none}
+  .drop .big{font-size:2.2rem}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  label.fld{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.95rem}
+  select,input[type=number],input[type=text]{font-family:inherit;font-size:.95rem;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:var(--ink)}
+  select:focus,input:focus{outline:2px solid #93c5fd;border-color:var(--primary)}
+  .btn{font-family:inherit;font-size:.95rem;font-weight:600;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s;color:#fff}
+  .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .b-blue{background:var(--primary)} .b-green{background:var(--green)} .b-violet{background:var(--violet)}
+  .b-red{background:var(--red)} .b-amber{background:var(--amber)} .b-gray{background:#475569}
+  .b-light{background:#fff;color:var(--ink);border:1px solid #cbd5e1}
+  .btn.sm{padding:6px 12px;font-size:.85rem;border-radius:8px}
+  .info{font-size:.92rem;color:var(--muted)}
+  .badge{display:inline-block;font-size:.72rem;padding:1px 8px;border-radius:999px;font-weight:600}
+  .bn{background:#dcfce7;color:#166534} .bt{background:#fef3c7;color:#92400e}
+  .varlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;max-height:280px;overflow:auto;padding:4px}
+  .varitem{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#f8fafc;cursor:pointer;font-size:.93rem}
+  .varitem:hover{background:var(--primary-soft)}
+  .varitem span.nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .scalebox{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px}
+  .scalelabels{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px}
+  .scalelabels .lv{display:flex;align-items:center;gap:6px;font-size:.9rem}
+  .scalelabels .lv b{min-width:62px;color:var(--primary)}
+  .scalelabels input{flex:1;min-width:0}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:6px 0}
+  .tbl-wrap{overflow-x:auto;margin:6px 0 10px}
+  table.rpt{border-collapse:collapse;width:100%;font-size:.93rem;background:#fff}
+  table.rpt th,table.rpt td{border:1px solid #cbd5e1;padding:6px 10px;text-align:center}
+  table.rpt th{background:#eff6ff;font-weight:600}
+  table.rpt td.l,table.rpt th.l{text-align:left}
+  table.rpt tr.tot td{font-weight:700;background:#f8fafc}
+  table.prev{font-size:.82rem}
+  .report-block{margin-bottom:26px}
+  .caption{margin:0 0 4px;font-size:1rem}
+  .desc{background:#fffbeb;border-left:4px solid var(--amber);padding:10px 14px;border-radius:6px;font-size:.95rem;text-indent:2.5em}
+  .desc[contenteditable]:focus{outline:2px solid #fcd34d}
+  .note{font-size:.85rem;color:var(--muted);margin:2px 0}
+  .res-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;border-bottom:2px solid var(--line);padding-bottom:10px}
+  .res-head h2{margin:0}
+  .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px}
+  .chart-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}
+  .chart-card .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+  .chart-card .top b{font-size:.95rem}
+  .cwrap{position:relative;height:380px}
+  .hidden{display:none!important}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 18px;border-radius:10px;font-size:.92rem;z-index:99;opacity:0;transition:.3s;pointer-events:none}
+  .toast.show{opacity:1}
+  .hint{font-size:.85rem;color:var(--muted);margin-top:4px}
+  @media (max-width:640px){
+    .charts{grid-template-columns:1fr}
+    .cwrap{height:320px}
+    header h1{font-size:1.35rem}
+    .btn{flex:1 1 100%;justify-content:center}
+  }
+</style>
+</head>
+<body>
+<header><div class="inner">
+  <h1>📊 ระบบวิเคราะห์ข้อมูลเชิงพรรณนา (Descriptive Analysis)</h1>
+  <p>แนบไฟล์ Excel → เลือกตัวแปร → เลือกรูปแบบ → แสดงผลเป็นตาราง / กราฟ พร้อมดาวน์โหลด Word และ PNG</p>
+</div></header>
+
+<main>
+  <!-- STEP 1 -->
+  <section class="card">
+    <h2><span class="step">1</span> แนบไฟล์ข้อมูล</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      <div class="big">📁</div>
+      <div><b>คลิกเพื่อเลือกไฟล์</b> หรือลากไฟล์มาวางที่นี่</div>
+      <div class="info">รองรับ .xlsx, .xls, .csv — แถวแรกต้องเป็นชื่อตัวแปร (หัวคอลัมน์)</div>
+    </label>
+    <div class="row" style="margin-top:12px">
+      <label class="fld hidden" id="sheetWrap">ชีต (Sheet)
+        <select id="sheetSelect"></select>
+      </label>
+      <button class="btn b-light sm" id="demoBtn" type="button">🧪 ทดลองด้วยข้อมูลตัวอย่าง</button>
+      <span class="info" id="fileInfo"></span>
+    </div>
+    <div class="tbl-wrap hidden" id="previewWrap"></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card">
+    <h2><span class="step">2</span> เลือกตัวแปรที่ต้องการวิเคราะห์</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn b-light sm" id="selAll" type="button">เลือกทั้งหมด</button>
+      <button class="btn b-light sm" id="selNum" type="button">เฉพาะตัวแปรตัวเลข</button>
+      <button class="btn b-light sm" id="selNone" type="button">ไม่เลือก</button>
+      <span class="info"><span class="badge bn">ตัวเลข</span> ใช้คำนวณค่าเฉลี่ย/สถิติได้ &nbsp; <span class="badge bt">ข้อความ</span> ใช้ได้กับความถี่/ร้อยละ</span>
+    </div>
+    <div class="varlist" id="varList"><span class="info">ยังไม่มีข้อมูล — กรุณาแนบไฟล์ก่อน</span></div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card">
+    <h2><span class="step">3</span> ตั้งค่าการแสดงผล</h2>
+    <div class="grid">
+      <label class="fld">รูปแบบตาราง
+        <select id="tableMode">
+          <option value="freq">1) ความถี่ และร้อยละ</option>
+          <option value="mean">2) ค่าเฉลี่ย และส่วนเบี่ยงเบนมาตรฐาน (พร้อมแปลผล)</option>
+          <option value="full">3) สถิติพรรณนาเต็มรูปแบบ + ความเบ้/ความโด่ง + Normality</option>
+        </select>
+      </label>
+      <label class="fld">รูปแบบกราฟ / Chart
+        <select id="chartType">
+          <optgroup label="ความถี่ (รายตัวแปร)">
+            <option value="bar">กราฟแท่งแนวตั้ง (Bar)</option>
+            <option value="hbar">กราฟแท่งแนวนอน (Horizontal Bar)</option>
+            <option value="pie">กราฟวงกลม (Pie)</option>
+            <option value="doughnut">กราฟโดนัท (Doughnut)</option>
+            <option value="polarArea">กราฟ Polar Area</option>
+            <option value="line">กราฟเส้น (Line)</option>
+          </optgroup>
+          <optgroup label="การแจกแจง (ตัวแปรตัวเลข)">
+            <option value="histogram">ฮิสโทแกรม + เส้นโค้งปกติ (Histogram)</option>
+            <option value="qq">Normal Q-Q Plot</option>
+            <option value="boxplot">Box Plot (เปรียบเทียบตัวแปร)</option>
+          </optgroup>
+          <optgroup label="เปรียบเทียบหลายตัวแปร">
+            <option value="meanbar">ค่าเฉลี่ย ± S.D. (Error Bar)</option>
+            <option value="radar">เรดาร์ค่าเฉลี่ย (Radar)</option>
+            <option value="stacked">แท่งซ้อนร้อยละ 100% (Likert)</option>
+          </optgroup>
+        </select>
+      </label>
+      <label class="fld">จำนวนทศนิยม
+        <select id="decimals">
+          <option value="2" selected>2 ตำแหน่ง</option>
+          <option value="3">3 ตำแหน่ง</option>
+          <option value="4">4 ตำแหน่ง</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="scalebox" id="scaleBox">
+      <b>⚖️ เกณฑ์การแปลความหมายค่าเฉลี่ย (Scale)</b> <span class="info">— ใช้กับตารางรูปแบบที่ 2</span>
+      <div class="row" style="margin-top:8px">
+        <label class="fld">จำนวนระดับ
+          <select id="scaleLevels"></select>
+        </label>
+        <label class="fld">คะแนนต่ำสุด
+          <input type="number" id="scaleMin" value="1" step="any" style="width:110px">
+        </label>
+        <label class="fld">คะแนนสูงสุด
+          <input type="number" id="scaleMax" value="5" step="any" style="width:110px">
+        </label>
+        <button class="btn b-light sm" id="scaleDefault" type="button" style="align-self:flex-end">คืนค่าคำอธิบายมาตรฐาน</button>
+      </div>
+      <div class="scalelabels" id="scaleLabels"></div>
+      <div class="tbl-wrap" id="criteriaPreview"></div>
+    </div>
+  </section>
+
+  <!-- ACTIONS -->
+  <section class="card">
+    <div class="actions">
+      <button class="btn b-blue" id="btnTable" type="button">📋 แสดงผลตาราง</button>
+      <button class="btn b-green" id="btnChart" type="button">📈 แสดงผลกราฟ</button>
+      <button class="btn b-violet" id="btnBoth" type="button">🧾 แสดงทั้งตารางและกราฟ</button>
+      <button class="btn b-red" id="btnReset" type="button">↺ รีเซ็ตหน้า</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="card hidden" id="tableSection">
+    <div class="res-head">
+      <h2>📋 ผลการวิเคราะห์ (ตาราง)</h2>
+      <button class="btn b-blue sm" id="dlWord" type="button">⬇️ ดาวน์โหลด MS Word</button>
+    </div>
+    <p class="note">💡 คลิกที่กล่องคำอธิบายสีเหลืองเพื่อแก้ไขข้อความได้ก่อนดาวน์โหลด</p>
+    <div id="tableOutput"></div>
+  </section>
+
+  <section class="card hidden" id="chartSection">
+    <div class="res-head">
+      <h2>📈 ผลการวิเคราะห์ (กราฟ)</h2>
+      <button class="btn b-green sm" id="dlAllPng" type="button">⬇️ ดาวน์โหลดกราฟทั้งหมด (PNG)</button>
+    </div>
+    <div class="charts" id="chartOutput"></div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   STATISTICS ENGINE
+   ========================================================= */
+/*STATS_START*/
+function poly(cc,x){let r=0;for(let i=cc.length-1;i>=0;i--)r=r*x+cc[i];return r;}
+function erfc(x){const z=Math.abs(x),t=1/(1+0.5*z);
+  const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+  return x>=0?r:2-r;}
+function pnorm(z){if(z===Infinity)return 1;if(z===-Infinity)return 0;return 0.5*erfc(-z/Math.SQRT2);}
+function qnorm(p){
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425;let q,r;
+  if(p<pl){q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  if(p>1-pl){q=Math.sqrt(-2*Math.log(1-p));return-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  q=p-0.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+/* Percentile แบบ SPSS (Weighted average, p(n+1)) */
+function pctl(x,p){const n=x.length;const w=p/100*(n+1);const k=Math.floor(w),f=w-k;
+  if(k<1)return x[0];if(k>=n)return x[n-1];return x[k-1]+f*(x[k]-x[k-1]);}
+/* Shapiro-Wilk (Royston, 1995 — algorithm AS R94) */
+function shapiroWilk(xs){
+  const x=xs.slice().sort((a,b)=>a-b),n=x.length;
+  if(n<3||n>5000)return null;
+  if(x[n-1]-x[0]<1e-12)return null;
+  const nn2=Math.floor(n/2),a=new Array(nn2+1).fill(0);
+  if(n===3)a[1]=Math.SQRT1_2;
+  else{
+    const an25=n+0.25,m=[0];let summ2=0;
+    for(let i=1;i<=nn2;i++){m[i]=qnorm((i-0.375)/an25);summ2+=m[i]*m[i];}
+    summ2*=2;const ssumm2=Math.sqrt(summ2),rsn=1/Math.sqrt(n);
+    const a1=poly([0,0.221157,-0.147981,-2.07119,4.434685,-2.706056],rsn)-m[1]/ssumm2;
+    let i1,fac;
+    if(n>5){i1=3;const a2=-m[2]/ssumm2+poly([0,0.042981,-0.293762,-1.752461,5.682633,-3.582633],rsn);
+      fac=Math.sqrt((summ2-2*m[1]*m[1]-2*m[2]*m[2])/(1-2*a1*a1-2*a2*a2));a[2]=a2;}
+    else{i1=2;fac=Math.sqrt((summ2-2*m[1]*m[1])/(1-2*a1*a1));}
+    a[1]=a1;for(let i=i1;i<=nn2;i++)a[i]=-m[i]/fac;
+  }
+  const mean=x.reduce((s,v)=>s+v,0)/n;let ssq=0;for(const v of x)ssq+=(v-mean)*(v-mean);
+  let bb=0;for(let i=1;i<=nn2;i++)bb+=a[i]*(x[n-i]-x[i-1]);
+  let W=bb*bb/ssq;if(W>=1)return{W:1,p:1};
+  if(n===3){let pw=1.90985931710274*(Math.asin(Math.sqrt(W))-1.04719755119660);return{W,p:Math.max(0,Math.min(1,pw))};}
+  const y=Math.log(1-W);let pw;
+  if(n<=11){const gamma=poly([-2.273,0.459],n);if(y>=gamma)return{W,p:1e-99};
+    const yy=-Math.log(gamma-y),mm=poly([0.544,-0.39978,0.025054,-6.714e-4],n),s=Math.exp(poly([1.3822,-0.77857,0.062767,-0.0020322],n));
+    pw=1-pnorm((yy-mm)/s);}
+  else{const xx=Math.log(n),mm=poly([-1.5861,-0.31082,-0.083751,0.0038915],xx),s=Math.exp(poly([-0.4803,-0.082676,0.0030302],xx));
+    pw=1-pnorm((y-mm)/s);}
+  return{W,p:Math.max(0,Math.min(1,pw))};
+}
+/* Kolmogorov-Smirnov with Lilliefors correction (Dallal-Wilkinson p-value) */
+function lilliefors(xs){
+  const x=xs.slice().sort((a,b)=>a-b),n=x.length;if(n<5)return null;
+  const mean=x.reduce((s,v)=>s+v,0)/n;let ss=0;for(const v of x)ss+=(v-mean)**2;const sd=Math.sqrt(ss/(n-1));
+  if(sd<1e-12)return null;
+  let D=0;for(let i=0;i<n;i++){const F=pnorm((x[i]-mean)/sd);D=Math.max(D,(i+1)/n-F,F-i/n);}
+  let Kd=D,nd=n;if(n>100){Kd=D*Math.pow(n/100,0.49);nd=100;}
+  let p=Math.exp(-7.01256*Kd*Kd*(nd+2.78019)+2.99587*Kd*Math.sqrt(nd+2.78019)-0.122119+0.974598/Math.sqrt(nd)+1.67997/nd);
+  if(p>0.1){const KK=(Math.sqrt(n)-0.01+0.85/Math.sqrt(n))*D;
+    if(KK<=0.302)p=1;
+    else if(KK<=0.5)p=2.76773-19.828315*KK+80.709644*KK**2-138.55152*KK**3+81.218052*KK**4;
+    else if(KK<=0.9)p=-4.901232+40.662806*KK-97.490286*KK**2+94.029866*KK**3-32.355711*KK**4;
+    else if(KK<=1.31)p=6.198765-19.558097*KK+23.186922*KK**2-12.234627*KK**3+2.423045*KK**4;
+    else p=0;}
+  return{D,p:Math.max(0,Math.min(1,p))};
+}
+function describe(arr){
+  const x=arr.slice().sort((a,b)=>a-b),n=x.length;if(!n)return null;
+  const sum=x.reduce((s,v)=>s+v,0),mean=sum/n;
+  let m2=0,m3=0,m4=0;for(const v of x){const d=v-mean;m2+=d*d;m3+=d*d*d;m4+=d*d*d*d;}
+  const variance=n>1?m2/(n-1):NaN,sd=Math.sqrt(variance);
+  const ok=sd>1e-12;
+  const skew=(n>2&&ok)?n*m3/((n-1)*(n-2)*sd**3):NaN;
+  const kurt=(n>3&&ok)?n*(n+1)*m4/((n-1)*(n-2)*(n-3)*sd**4)-3*(n-1)**2/((n-2)*(n-3)):NaN;
+  const seSkew=n>2?Math.sqrt(6*n*(n-1)/((n-2)*(n+1)*(n+3))):NaN;
+  const seKurt=n>3?2*seSkew*Math.sqrt((n*n-1)/((n-3)*(n+5))):NaN;
+  const cnt=new Map();for(const v of x)cnt.set(v,(cnt.get(v)||0)+1);
+  let maxc=0;cnt.forEach(c=>{if(c>maxc)maxc=c;});
+  const modes=[...cnt].filter(([,c])=>c===maxc).map(([v])=>v).sort((a,b)=>a-b);
+  const q1=pctl(x,25),q2=pctl(x,50),q3=pctl(x,75);
+  return{n,sum,mean,variance,sd,se:sd/Math.sqrt(n),min:x[0],max:x[n-1],range:x[n-1]-x[0],
+    median:q2,q1,q3,iqr:q3-q1,p10:pctl(x,10),p90:pctl(x,90),
+    mode:modes[0],multiMode:modes.length>1,skew,seSkew,kurt,seKurt,
+    zSkew:skew/seSkew,zKurt:kurt/seKurt,cv:mean!==0?sd/Math.abs(mean)*100:NaN,
+    sw:shapiroWilk(x),ks:lilliefors(x),sorted:x};
+}
+/*STATS_END*/
+
+/* =========================================================
+   APP STATE & HELPERS
+   ========================================================= */
+const $=id=>document.getElementById(id);
+const S={wb:null,cols:[],nRows:0,fileName:'',charts:[],tableNo:0};
+const PALETTE=['#2563eb','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16','#f97316','#64748b','#14b8a6','#a855f7','#eab308','#0ea5e9','#f43f5e'];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isMissing=v=>v===null||v===undefined||(typeof v==='string'&&v.trim()==='');
+function toNum(v){if(typeof v==='number')return v;if(typeof v==='string'){const s=v.trim().replace(/,/g,'');if(s==='')return NaN;return Number(s);}return NaN;}
+const D=()=>+$('decimals').value;
+const fmt=(x,d=D())=>(x===null||x===undefined||!isFinite(x))?'-':x.toFixed(d);
+const fmtP=p=>(p==null||!isFinite(p))?'-':(p<0.001?'&lt;.001':p.toFixed(3).replace(/^0/,''));
+const fmtNum=v=>typeof v==='number'?(Number.isInteger(v)?String(v):fmt(v)):esc(v);
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+
+/* =========================================================
+   FILE LOADING
+   ========================================================= */
+const fileInput=$('fileInput'),drop=$('drop');
+fileInput.addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0]);});
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)readFile(f);});
+
+function readFile(f){
+  if(typeof XLSX==='undefined'){alert('ไม่สามารถโหลดไลบรารีอ่าน Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');return;}
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      S.wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      S.fileName=f.name.replace(/\.[^.]+$/,'');
+      const sel=$('sheetSelect');sel.innerHTML=S.wb.SheetNames.map(n=>`<option>${esc(n)}</option>`).join('');
+      $('sheetWrap').classList.toggle('hidden',S.wb.SheetNames.length<2);
+      loadSheet(S.wb.SheetNames[0]);
+    }catch(err){alert('อ่านไฟล์ไม่สำเร็จ: '+err.message);}
+  };
+  r.readAsArrayBuffer(f);
+}
+$('sheetSelect').addEventListener('change',e=>loadSheet(e.target.value));
+
+function loadSheet(name){
+  const aoa=XLSX.utils.sheet_to_json(S.wb.Sheets[name],{header:1,defval:null,raw:true,blankrows:false});
+  if(!aoa.length){alert('ชีตนี้ไม่มีข้อมูล');return;}
+  const width=Math.max(...aoa.map(r=>r.length));
+  const headers=[];for(let i=0;i<width;i++){const h=aoa[0][i];headers.push(isMissing(h)?'คอลัมน์ '+(i+1):String(h).trim());}
+  const rows=aoa.slice(1).filter(r=>r.some(v=>!isMissing(v)));
+  setData(headers,rows);
+  $('fileInfo').innerHTML=`✅ <b>${esc(S.fileName)}</b> ชีต “${esc(name)}” — ${rows.length} แถว, ${headers.length} ตัวแปร`;
+}
+
+function setData(headers,rows){
+  S.nRows=rows.length;
+  S.cols=headers.map((h,i)=>{
+    const raw=rows.map(r=>r[i]===undefined?null:r[i]);
+    const present=raw.filter(v=>!isMissing(v));
+    const numsRow=raw.map(v=>isMissing(v)?NaN:toNum(v));
+    const nums=numsRow.filter(Number.isFinite);
+    const isNum=nums.length>0&&nums.length/present.length>=0.9;
+    return{name:h,raw,present,nums,numsRow,isNum};
+  }).filter(c=>c.present.length>0);
+  renderVarList();renderPreview(headers,rows);
+  hideResults();
+}
+
+function renderPreview(headers,rows){
+  const w=$('previewWrap');
+  const head=headers.map(h=>`<th>${esc(h)}</th>`).join('');
+  const body=rows.slice(0,5).map(r=>'<tr>'+headers.map((_,i)=>`<td>${isMissing(r[i])?'':esc(r[i])}</td>`).join('')+'</tr>').join('');
+  w.innerHTML=`<p class="note">ตัวอย่างข้อมูล 5 แถวแรก</p><table class="rpt prev"><tr>${head}</tr>${body}</table>`;
+  w.classList.remove('hidden');
+}
+
+function renderVarList(){
+  const box=$('varList');
+  if(!S.cols.length){box.innerHTML='<span class="info">ไม่พบตัวแปรที่มีข้อมูล</span>';return;}
+  box.innerHTML=S.cols.map((c,i)=>`<label class="varitem" title="${esc(c.name)}"><input type="checkbox" value="${i}" checked><span class="nm">${esc(c.name)}</span><span class="badge ${c.isNum?'bn':'bt'}">${c.isNum?'ตัวเลข':'ข้อความ'}</span></label>`).join('');
+}
+const checks=()=>[...document.querySelectorAll('#varList input[type=checkbox]')];
+$('selAll').onclick=()=>checks().forEach(c=>c.checked=true);
+$('selNone').onclick=()=>checks().forEach(c=>c.checked=false);
+$('selNum').onclick=()=>checks().forEach(c=>c.checked=S.cols[+c.value].isNum);
+const selectedCols=()=>checks().filter(c=>c.checked).map(c=>S.cols[+c.value]);
+
+/* Demo data */
+$('demoBtn').onclick=()=>{
+  let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646;};
+  const pick=(arr,w)=>{let r=rnd()*w.reduce((a,b)=>a+b,0);for(let i=0;i<arr.length;i++){r-=w[i];if(r<=0)return arr[i];}return arr[arr.length-1];};
+  const headers=['เพศ','อายุ','ระดับการศึกษา','ข้อ 1 ความสะดวกในการใช้งาน','ข้อ 2 ความรวดเร็ว','ข้อ 3 ความถูกต้องของข้อมูล','ข้อ 4 ความสวยงาม','ข้อ 5 ความพึงพอใจโดยรวม'];
+  const rows=[];
+  for(let i=0;i<150;i++){
+    const age=Math.round(22+Math.abs((rnd()+rnd()+rnd()-1.5)*18)+rnd()*6);
+    rows.push([pick(['ชาย','หญิง'],[45,55]),age,pick(['ต่ำกว่าปริญญาตรี','ปริญญาตรี','สูงกว่าปริญญาตรี'],[25,55,20]),
+      pick([1,2,3,4,5],[2,5,18,40,35]),pick([1,2,3,4,5],[3,10,30,35,22]),pick([1,2,3,4,5],[1,4,15,38,42]),
+      pick([1,2,3,4,5],[5,15,35,30,15]),pick([1,2,3,4,5],[1,3,16,45,35])]);
+  }
+  S.wb=null;S.fileName='ข้อมูลตัวอย่าง';fileInput.value='';$('sheetWrap').classList.add('hidden');
+  setData(headers,rows);
+  $('fileInfo').innerHTML=`🧪 <b>ข้อมูลตัวอย่าง</b> — ${rows.length} แถว, ${headers.length} ตัวแปร`;
+  toast('โหลดข้อมูลตัวอย่างแล้ว');
+};
+
+/* =========================================================
+   SCALE SETTINGS
+   ========================================================= */
+function defaultLabels(k){
+  const preset={
+    2:['น้อย','มาก'],
+    3:['น้อย','ปานกลาง','มาก'],
+    4:['น้อยที่สุด','น้อย','มาก','มากที่สุด'],
+    5:['น้อยที่สุด','น้อย','ปานกลาง','มาก','มากที่สุด'],
+    6:['น้อยที่สุด','น้อย','ค่อนข้างน้อย','ค่อนข้างมาก','มาก','มากที่สุด'],
+    7:['น้อยที่สุด','น้อย','ค่อนข้างน้อย','ปานกลาง','ค่อนข้างมาก','มาก','มากที่สุด'],
+    8:['น้อยที่สุด','น้อยมาก','น้อย','ค่อนข้างน้อย','ค่อนข้างมาก','มาก','มากมาก','มากที่สุด'],
+    9:['น้อยที่สุด','น้อยมาก','น้อย','ค่อนข้างน้อย','ปานกลาง','ค่อนข้างมาก','มาก','มากมาก','มากที่สุด'],
+    10:['น้อยที่สุด','น้อยมาก','น้อย','ค่อนข้างน้อย','ปานกลางค่อนข้างน้อย','ปานกลางค่อนข้างมาก','ค่อนข้างมาก','มาก','มากมาก','มากที่สุด']
+  };return preset[k].slice();
+}
+$('scaleLevels').innerHTML=Array.from({length:9},(_,i)=>`<option value="${i+2}" ${i+2===5?'selected':''}>${i+2} ระดับ</option>`).join('');
+function buildScaleInputs(keepMax){
+  const k=+$('scaleLevels').value;
+  if(!keepMax){$('scaleMin').value=1;$('scaleMax').value=k;}
+  const lab=defaultLabels(k);
+  let h='';for(let i=k-1;i>=0;i--)h+=`<div class="lv"><b>ระดับ ${i+1}</b><input type="text" data-idx="${i}" value="${esc(lab[i])}"></div>`;
+  $('scaleLabels').innerHTML=h;
+  document.querySelectorAll('#scaleLabels input').forEach(inp=>inp.addEventListener('input',updateCriteria));
+  updateCriteria();
+}
+function getScale(){
+  const k=+$('scaleLevels').value,min=+$('scaleMin').value,max=+$('scaleMax').value;
+  const labels=[];document.querySelectorAll('#scaleLabels input').forEach(inp=>labels[+inp.dataset.idx]=inp.value.trim()||('ระดับ '+(+inp.dataset.idx+1)));
+  const w=(max-min)/k;
+  const ranges=labels.map((lb,i)=>({lo:i===0?min:min+i*w+0.01,hi:min+(i+1)*w,label:lb}));
+  return{k,min,max,w,labels,ranges};
+}
+function levelOf(mean,sc){const m=Math.round(mean*100)/100;for(let i=0;i<sc.k;i++){if(m<=Math.round(sc.ranges[i].hi*100)/100+1e-9)return i;}return sc.k-1;}
+function criteriaTable(sc){
+  let rows='';for(let i=sc.k-1;i>=0;i--){const r=sc.ranges[i];rows+=`<tr><td>${r.lo.toFixed(2)} – ${r.hi.toFixed(2)}</td><td>${esc(r.label)}</td></tr>`;}
+  return`<table class="rpt" style="max-width:440px"><tr><th>ช่วงค่าเฉลี่ย</th><th>ระดับ / การแปลความหมาย</th></tr>${rows}</table>`;
+}
+function updateCriteria(){
+  const sc=getScale();
+  if(!(sc.max>sc.min)){$('criteriaPreview').innerHTML='<p class="note" style="color:#dc2626">คะแนนสูงสุดต้องมากกว่าคะแนนต่ำสุด</p>';return;}
+  $('criteriaPreview').innerHTML=`<p class="note">ความกว้างอันตรภาคชั้น = (${sc.max} − ${sc.min}) ÷ ${sc.k} = ${sc.w.toFixed(2)}</p>`+criteriaTable(sc);
+}
+$('scaleLevels').addEventListener('change',()=>buildScaleInputs(false));
+$('scaleMin').addEventListener('input',updateCriteria);
+$('scaleMax').addEventListener('input',updateCriteria);
+$('scaleDefault').onclick=()=>buildScaleInputs(true);
+$('tableMode').addEventListener('change',()=>$('scaleBox').classList.toggle('hidden',$('tableMode').value!=='mean'));
+buildScaleInputs(false);
+$('scaleBox').classList.add('hidden');
+
+/* =========================================================
+   TABLE GENERATION
+   ========================================================= */
+function freqOf(col){
+  const m=new Map();
+  col.raw.forEach(v=>{if(isMissing(v))return;const n=toNum(v);const key=(col.isNum&&Number.isFinite(n))?n:String(v).trim();m.set(key,(m.get(key)||0)+1);});
+  const arr=[...m].map(([k,f])=>({k,f}));
+  arr.sort((a,b)=>(typeof a.k==='number'&&typeof b.k==='number')?a.k-b.k:String(a.k).localeCompare(String(b.k),'th',{numeric:true}));
+  const total=arr.reduce((s,a)=>s+a.f,0);
+  arr.forEach(a=>a.p=a.f/total*100);
+  return{arr,total,missing:col.raw.length-total};
+}
+function block(caption,table,desc,notes=''){
+  S.tableNo++;
+  return`<div class="report-block"><p class="caption"><b>ตารางที่ ${S.tableNo}</b> ${esc(caption)}</p><div class="tbl-wrap">${table}</div>${notes}${desc?`<div class="desc" contenteditable="true">${desc}</div>`:''}</div>`;
+}
+
+function tableFreq(cols){
+  let html='';
+  cols.forEach(col=>{
+    const fq=freqOf(col);let cum=0;
+    let rows=fq.arr.map(a=>{cum+=a.p;return`<tr><td class="l">${fmtNum(a.k)}</td><td>${a.f}</td><td>${a.p.toFixed(2)}</td><td>${cum.toFixed(2)}</td></tr>`;}).join('');
+    rows+=`<tr class="tot"><td class="l">รวม</td><td>${fq.total}</td><td>100.00</td><td></td></tr>`;
+    const table=`<table class="rpt"><tr><th class="l">${esc(col.name)}</th><th>ความถี่ (n)</th><th>ร้อยละ (%)</th><th>ร้อยละสะสม</th></tr>${rows}</table>`;
+    const s=fq.arr.slice().sort((a,b)=>b.f-a.f);
+    const show=a=>`${fmtNum(a.k)} จำนวน ${a.f} คน คิดเป็นร้อยละ ${a.p.toFixed(2)}`;
+    let desc=`จากตารางที่ ${S.tableNo+1} พบว่า ผู้ตอบแบบสอบถามจำนวนทั้งสิ้น ${fq.total} คน จำแนกตาม${esc(col.name)} ส่วนใหญ่คือ ${show(s[0])}`;
+    if(s.length>2)desc+=` รองลงมาคือ ${show(s[1])} และน้อยที่สุดคือ ${show(s[s.length-1])}`;
+    else if(s.length===2)desc+=` และ ${show(s[1])}`;
+    desc+='';
+    const note=fq.missing>0?`<p class="note">หมายเหตุ: ไม่ระบุข้อมูล (Missing) จำนวน ${fq.missing} ราย ไม่นำมาคำนวณร้อยละ</p>`:'';
+    html+=block(`จำนวนและร้อยละของผู้ตอบแบบสอบถาม จำแนกตาม${col.name}`,table,desc,note);
+  });
+  return html;
+}
+
+function tableMean(cols){
+  const sc=getScale();
+  if(!(sc.max>sc.min)){alert('กรุณาตั้งค่าคะแนนสูงสุดให้มากกว่าคะแนนต่ำสุด');return null;}
+  const d=D();
+  let html=block('เกณฑ์การแปลความหมายค่าเฉลี่ย',criteriaTable(sc),
+    `การแปลความหมายค่าเฉลี่ยใช้เกณฑ์ ${sc.k} ระดับ โดยคำนวณความกว้างของอันตรภาคชั้นจาก (คะแนนสูงสุด − คะแนนต่ำสุด) ÷ จำนวนระดับ = (${sc.max} − ${sc.min}) ÷ ${sc.k} = ${sc.w.toFixed(2)}`);
+  const items=cols.map(c=>{const st=describe(c.nums);return{name:c.name,mean:st.mean,sd:st.sd,n:st.n,lv:levelOf(st.mean,sc)};});
+  const order=items.map((_,i)=>i).sort((a,b)=>items[b].mean-items[a].mean);
+  order.forEach((idx,r)=>items[idx].rank=r+1);
+  // ภาพรวม: ค่าเฉลี่ยรายบุคคล
+  const perPerson=[];
+  for(let r=0;r<S.nRows;r++){const vals=cols.map(c=>c.numsRow[r]).filter(Number.isFinite);if(vals.length)perPerson.push(vals.reduce((a,b)=>a+b,0)/vals.length);}
+  const ov=describe(perPerson);const ovLv=levelOf(ov.mean,sc);
+  let rows=items.map((it,i)=>`<tr><td>${i+1}</td><td class="l">${esc(it.name)}</td><td>${fmt(it.mean,d)}</td><td>${fmt(it.sd,d)}</td><td>${esc(sc.labels[it.lv])}</td><td>${it.rank}</td></tr>`).join('');
+  if(items.length>1)rows+=`<tr class="tot"><td></td><td class="l">ภาพรวม</td><td>${fmt(ov.mean,d)}</td><td>${fmt(ov.sd,d)}</td><td>${esc(sc.labels[ovLv])}</td><td></td></tr>`;
+  const table=`<table class="rpt"><tr><th>ที่</th><th class="l">รายการ</th><th>x̄</th><th>S.D.</th><th>ระดับ</th><th>อันดับ</th></tr>${rows}</table>`;
+  const it=i=>`${esc(items[i].name)} (x̄ = ${fmt(items[i].mean,d)}, S.D. = ${fmt(items[i].sd,d)})`;
+  let desc;
+  if(items.length>1){
+    desc=`จากตารางที่ ${S.tableNo+1} พบว่า ภาพรวมอยู่ในระดับ${esc(sc.labels[ovLv])} (x̄ = ${fmt(ov.mean,d)}, S.D. = ${fmt(ov.sd,d)}) เมื่อพิจารณาเป็นรายข้อ พบว่า ข้อที่มีค่าเฉลี่ยสูงสุด คือ ${it(order[0])} อยู่ในระดับ${esc(sc.labels[items[order[0]].lv])}`;
+    if(items.length>2)desc+=` รองลงมาคือ ${it(order[1])} อยู่ในระดับ${esc(sc.labels[items[order[1]].lv])}`;
+    desc+=` และข้อที่มีค่าเฉลี่ยต่ำสุด คือ ${it(order[order.length-1])} อยู่ในระดับ${esc(sc.labels[items[order[order.length-1]].lv])}`;
+  }else desc=`จากตารางที่ ${S.tableNo+1} พบว่า ${it(0)} อยู่ในระดับ${esc(sc.labels[items[0].lv])}`;
+  html+=block('ค่าเฉลี่ย (x̄) ส่วนเบี่ยงเบนมาตรฐาน (S.D.) และระดับการแปลความหมาย',table,desc,
+    items.length>1?`<p class="note">หมายเหตุ: ค่าภาพรวมคำนวณจากค่าเฉลี่ยรายบุคคลของทุกข้อ (n = ${ov.n})</p>`:'');
+  return html;
+}
+
+const skewTxt=(s,z)=>!isFinite(s)?'-':(Math.abs(z)<=1.96?'ไม่เบ้ (สมมาตร)':(s>0?'เบ้ขวา (เบ้บวก)':'เบ้ซ้าย (เบ้ลบ)'));
+const kurtTxt=(k,z)=>!isFinite(k)?'-':(Math.abs(z)<=1.96?'โด่งปกติ (Mesokurtic)':(k>0?'โด่งสูง (Leptokurtic)':'โด่งต่ำ/แบน (Platykurtic)'));
+function normalVerdict(st){
+  const useSW=st.n<50&&st.sw;const t=useSW?st.sw:(st.ks||st.sw);
+  if(!t)return{txt:'ข้อมูลไม่เพียงพอ',test:'-',p:NaN,ok:null};
+  return{txt:t.p>=0.05?'แจกแจงแบบปกติ':'ไม่แจกแจงแบบปกติ',test:useSW||!st.ks?'Shapiro-Wilk':'Kolmogorov-Smirnov',p:t.p,ok:t.p>=0.05};
+}
+function tableFull(cols){
+  const d=D();const st=cols.map(c=>describe(c.nums));
+  const def=[
+    ['N (Valid) จำนวนข้อมูล',s=>s.n,0],['Missing ข้อมูลสูญหาย',(s,i)=>S.nRows-cols[i].nums.length,0],
+    ['Mean ค่าเฉลี่ย',s=>s.mean],['Std. Error of Mean',s=>s.se],['Median มัธยฐาน',s=>s.median],
+    ['Mode ฐานนิยม',s=>s.mode,null,s=>s.multiMode?'<sup>a</sup>':''],['Std. Deviation ส่วนเบี่ยงเบนมาตรฐาน',s=>s.sd],
+    ['Variance ความแปรปรวน',s=>s.variance],['Skewness ความเบ้',s=>s.skew],['Std. Error of Skewness',s=>s.seSkew],
+    ['Kurtosis ความโด่ง',s=>s.kurt],['Std. Error of Kurtosis',s=>s.seKurt],['Range พิสัย',s=>s.range],
+    ['Minimum ค่าต่ำสุด',s=>s.min],['Maximum ค่าสูงสุด',s=>s.max],['Sum ผลรวม',s=>s.sum],
+    ['Percentile 10',s=>s.p10],['Quartile 1 (P25)',s=>s.q1],['Quartile 2 (P50)',s=>s.q2??s.median],
+    ['Quartile 3 (P75)',s=>s.q3],['Percentile 90',s=>s.p90],['Interquartile Range (IQR)',s=>s.iqr],['Coefficient of Variation (%)',s=>s.cv]
+  ];
+  const head=`<tr><th class="l">สถิติ</th>${cols.map(c=>`<th>${esc(c.name)}</th>`).join('')}</tr>`;
+  const body=def.map(([lab,fn,dd,suf])=>`<tr><td class="l">${lab}</td>${st.map((s,i)=>{const v=fn(s,i);const txt=dd===0?String(v):(dd===null&&Number.isInteger(v)?String(v):fmt(v,d));return`<td>${txt}${suf?suf(s):''}</td>`;}).join('')}</tr>`).join('');
+  const anyMulti=st.some(s=>s.multiMode);
+  let html=block('สถิติพรรณนา (Descriptive Statistics)',`<table class="rpt">${head}${body}</table>`,'',
+    anyMulti?'<p class="note">a. มีฐานนิยมหลายค่า แสดงค่าที่น้อยที่สุด</p>':'');
+  // Table 2 normality
+  const nrows=cols.map((c,i)=>{const s=st[i],v=normalVerdict(s);
+    return`<tr><td class="l">${esc(c.name)}</td><td>${s.n}</td><td>${fmt(s.skew,d)}</td><td>${fmt(s.zSkew,d)}</td><td>${skewTxt(s.skew,s.zSkew)}</td><td>${fmt(s.kurt,d)}</td><td>${fmt(s.zKurt,d)}</td><td>${kurtTxt(s.kurt,s.zKurt)}</td><td>${s.ks?fmt(s.ks.D,3):'-'}</td><td>${s.ks?fmtP(s.ks.p):'-'}</td><td>${s.sw?fmt(s.sw.W,3):'-'}</td><td>${s.sw?fmtP(s.sw.p):'-'}</td><td><b style="color:${v.ok===null?'#64748b':v.ok?'#059669':'#dc2626'}">${v.txt}</b></td></tr>`;}).join('');
+  const t2=`<table class="rpt"><tr><th rowspan="2" class="l">ตัวแปร</th><th rowspan="2">n</th><th colspan="3">ความเบ้ (Skewness)</th><th colspan="3">ความโด่ง (Kurtosis)</th><th colspan="2">Kolmogorov-Smirnov<sup>b</sup></th><th colspan="2">Shapiro-Wilk</th><th rowspan="2">สรุปผล</th></tr>
+  <tr><th>ค่า</th><th>Z</th><th>ลักษณะ</th><th>ค่า</th><th>Z</th><th>ลักษณะ</th><th>Statistic</th><th>Sig.</th><th>Statistic</th><th>Sig.</th></tr>${nrows}</table>`;
+  const descs=cols.map((c,i)=>{const s=st[i],v=normalVerdict(s);
+    return`${esc(c.name)} มีค่าความเบ้เท่ากับ ${fmt(s.skew,d)} (Z = ${fmt(s.zSkew,d)}) แสดงว่าข้อมูล${skewTxt(s.skew,s.zSkew)} และมีค่าความโด่งเท่ากับ ${fmt(s.kurt,d)} (Z = ${fmt(s.zKurt,d)}) มีลักษณะ${kurtTxt(s.kurt,s.zKurt)} ผลการทดสอบด้วย ${v.test} ได้ค่า Sig. = ${fmtP(v.p).replace('&lt;','<')} ${v.ok===null?'':v.ok?'มากกว่าหรือเท่ากับ .05 จึงสรุปได้ว่าข้อมูลมีการแจกแจงแบบปกติ':'น้อยกว่า .05 จึงสรุปได้ว่าข้อมูลไม่มีการแจกแจงแบบปกติ'}`;});
+  const desc=`จากตารางที่ ${S.tableNo+1} ผลการตรวจสอบความเบ้ ความโด่ง และการแจกแจงแบบปกติ พบว่า `+descs.join(' ; ');
+  html+=block('การตรวจสอบความเบ้ ความโด่ง และการแจกแจงแบบปกติ (Normality Test)',t2,desc,
+    `<p class="note">b. Lilliefors Significance Correction &nbsp;|&nbsp; เกณฑ์: |Z| ≤ 1.96 ถือว่าไม่เบ้/โด่งปกติ (α = .05) ; Sig. ≥ .05 ถือว่าแจกแจงแบบปกติ ; กลุ่มตัวอย่าง n &lt; 50 สรุปจาก Shapiro-Wilk, n ≥ 50 สรุปจาก Kolmogorov-Smirnov</p>`);
+  return html;
+}
+
+function renderTables(){
+  const sel=selectedCols();if(!checkReady(sel))return false;
+  const mode=$('tableMode').value;S.tableNo=0;
+  let html='';
+  if(mode==='freq')html=tableFreq(sel);
+  else{
+    const nums=sel.filter(c=>c.isNum);const skipped=sel.filter(c=>!c.isNum);
+    if(!nums.length){alert('รูปแบบนี้ต้องใช้ตัวแปรที่เป็นตัวเลข กรุณาเลือกตัวแปรตัวเลขอย่างน้อย 1 ตัว');return false;}
+    const r=mode==='mean'?tableMean(nums):tableFull(nums);if(r===null)return false;html=r;
+    if(skipped.length)html=`<p class="note">⚠️ ข้ามตัวแปรที่ไม่ใช่ตัวเลข: ${skipped.map(c=>esc(c.name)).join(', ')}</p>`+html;
+  }
+  $('tableOutput').innerHTML=html;$('tableSection').classList.remove('hidden');return true;
+}
+
+/* =========================================================
+   CHARTS
+   ========================================================= */
+if(typeof Chart!=='undefined'){
+  Chart.defaults.font.family="'Sarabun', sans-serif";Chart.defaults.font.size=13;Chart.defaults.color='#334155';
+  Chart.register({id:'whiteBg',beforeDraw(c){const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.restore();}});
+  Chart.register({id:'valueLabels',afterDatasetsDraw(c,_a,o){
+    if(!o||!o.enabled)return;const x=c.ctx;x.save();x.font="600 12px 'Sarabun'";x.fillStyle=o.color||'#0f172a';
+    const horiz=c.options.indexAxis==='y';
+    c.data.datasets.forEach((ds,di)=>{const meta=c.getDatasetMeta(di);if(meta.hidden||meta.type==='line'&&!o.line)return;
+      meta.data.forEach((el,i)=>{const v=ds.data[i];if(v==null||v===0)return;const t=o.fmt?o.fmt(v,i,di):String(v);
+        if(o.inside){if(Math.abs(v)<o.minShow)return;x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';
+          if(horiz)x.fillText(t,(el.x+el.base)/2,el.y);else x.fillText(t,el.x,(el.y+el.base)/2);}
+        else if(horiz){x.textAlign='left';x.textBaseline='middle';x.fillText(t,el.x+5,el.y);}
+        else{x.textAlign='center';x.textBaseline='bottom';x.fillText(t,el.x,el.y-5);}});});x.restore();}});
+  Chart.register({id:'errorBars',afterDatasetsDraw(c,_a,o){
+    if(!o||!o.sd)return;const x=c.ctx,y=c.scales.y,meta=c.getDatasetMeta(0);x.save();x.strokeStyle='#0f172a';x.lineWidth=1.6;
+    meta.data.forEach((el,i)=>{const m=c.data.datasets[0].data[i],s=o.sd[i];const t=y.getPixelForValue(m+s),b=y.getPixelForValue(m-s);
+      x.beginPath();x.moveTo(el.x,t);x.lineTo(el.x,b);x.moveTo(el.x-8,t);x.lineTo(el.x+8,t);x.moveTo(el.x-8,b);x.lineTo(el.x+8,b);x.stroke();});x.restore();}});
+}
+function destroyCharts(){S.charts.forEach(c=>{try{c.destroy();}catch(e){}});S.charts=[];$('chartOutput').innerHTML='';}
+function chartCard(title,wide){
+  const card=document.createElement('div');card.className='chart-card';if(wide)card.style.gridColumn='1/-1';
+  card.innerHTML=`<div class="top"><b>${esc(title)}</b><button class="btn b-light sm" type="button">⬇️ PNG</button></div><div class="cwrap"><canvas></canvas></div>`;
+  $('chartOutput').appendChild(card);
+  const canvas=card.querySelector('canvas');
+  card.querySelector('button').onclick=()=>downloadPNG(canvas,title);
+  card.dataset.title=title;return canvas;
+}
+function downloadPNG(canvas,title){
+  const a=document.createElement('a');a.href=canvas.toDataURL('image/png');
+  a.download=(title||'chart').replace(/[\\/:*?"<>|]/g,'_').slice(0,80)+'.png';document.body.appendChild(a);a.click();a.remove();
+}
+const titleOpt=t=>({display:true,text:t,font:{size:15,weight:'600'},padding:{bottom:12}});
+function newChart(canvas,cfg){cfg.options=cfg.options||{};cfg.options.responsive=true;cfg.options.maintainAspectRatio=false;cfg.options.devicePixelRatio=2;const ch=new Chart(canvas,cfg);S.charts.push(ch);return ch;}
+
+function freqChart(col,type){
+  const fq=freqOf(col);const labels=fq.arr.map(a=>String(a.k));const data=fq.arr.map(a=>a.f);
+  const title=`${col.name} (n = ${fq.total})`;const canvas=chartCard(col.name);
+  const circ=['pie','doughnut','polarArea'].includes(type);
+  if(circ){
+    newChart(canvas,{type,data:{labels:fq.arr.map(a=>`${a.k} (${a.p.toFixed(1)}%)`),datasets:[{data,backgroundColor:labels.map((_,i)=>type==='polarArea'?hexA(PALETTE[i%PALETTE.length],.7):PALETTE[i%PALETTE.length]),borderColor:'#fff',borderWidth:2}]},
+      options:{plugins:{title:titleOpt(title),legend:{position:'right'},tooltip:{callbacks:{label:c=>` ความถี่ ${c.raw} (${fq.arr[c.dataIndex].p.toFixed(2)}%)`}}}}});
+    return;
+  }
+  const isLine=type==='line';const horiz=type==='hbar';
+  newChart(canvas,{type:isLine?'line':'bar',data:{labels,datasets:[{label:'ความถี่',data,
+    backgroundColor:isLine?hexA(PALETTE[0],.15):labels.map((_,i)=>PALETTE[i%PALETTE.length]),borderColor:PALETTE[0],borderWidth:isLine?3:0,
+    fill:isLine,tension:.3,pointRadius:5,pointBackgroundColor:PALETTE[0],borderRadius:isLine?0:6}]},
+    options:{indexAxis:horiz?'y':'x',layout:{padding:{right:horiz?40:10,top:10}},
+      plugins:{title:titleOpt(title),legend:{display:false},valueLabels:{enabled:true,line:true,fmt:(v,i)=>`${v} (${fq.arr[i].p.toFixed(1)}%)`},
+        tooltip:{callbacks:{label:c=>` ความถี่ ${c.raw} (${fq.arr[c.dataIndex].p.toFixed(2)}%)`}}},
+      scales:{[horiz?'x':'y']:{beginAtZero:true,grace:'12%',title:{display:true,text:'ความถี่ (n)'},ticks:{precision:0}},[horiz?'y':'x']:{title:{display:true,text:col.name}}}}});
+}
+
+function histogramChart(col){
+  const st=describe(col.nums),x=st.sorted;const uniq=[...new Set(x)];
+  let edges=[],labels=[],counts=[],centers=[],bw;
+  if(uniq.length<=15&&uniq.every(Number.isInteger)){
+    const lo=st.min,hi=st.max;bw=1;
+    for(let v=lo;v<=hi;v++){labels.push(String(v));centers.push(v);counts.push(x.filter(q=>q===v).length);}
+  }else{
+    const k=Math.max(5,Math.ceil(Math.log2(st.n)+1));bw=(st.range||1)/k;
+    for(let i=0;i<=k;i++)edges.push(st.min+i*bw);
+    for(let i=0;i<k;i++){const a=edges[i],b=edges[i+1];counts.push(x.filter(q=>q>=a&&(i===k-1?q<=b:q<b)).length);labels.push(`${fmt(a)}–${fmt(b)}`);centers.push((a+b)/2);}
+  }
+  const norm=centers.map(c=>st.sd>0?st.n*bw*Math.exp(-0.5*((c-st.mean)/st.sd)**2)/(st.sd*Math.sqrt(2*Math.PI)):null);
+  const canvas=chartCard('ฮิสโทแกรม: '+col.name);
+  newChart(canvas,{data:{labels,datasets:[
+    {type:'line',label:'เส้นโค้งปกติ',data:norm,borderColor:'#dc2626',borderWidth:2.5,pointRadius:0,tension:.45,fill:false,order:0},
+    {type:'bar',label:'ความถี่',data:counts,backgroundColor:hexA(PALETTE[0],.75),borderColor:PALETTE[0],borderWidth:1,barPercentage:1,categoryPercentage:1,order:1}]},
+    options:{plugins:{title:titleOpt(`${col.name}  (Mean = ${fmt(st.mean)}, S.D. = ${fmt(st.sd)}, N = ${st.n})`),valueLabels:{enabled:true}},
+      scales:{y:{beginAtZero:true,grace:'10%',title:{display:true,text:'ความถี่'},ticks:{precision:0}},x:{title:{display:true,text:col.name}}}}});
+}
+
+function qqChart(col){
+  const st=describe(col.nums),x=st.sorted,n=st.n;
+  const pts=x.map((v,i)=>({x:v,y:st.mean+st.sd*qnorm((i+1-0.375)/(n+0.25))}));
+  const lo=Math.min(st.min,pts[0].y),hi=Math.max(st.max,pts[n-1].y);
+  const canvas=chartCard('Q-Q Plot: '+col.name);
+  newChart(canvas,{type:'scatter',data:{datasets:[
+    {label:'ค่าสังเกต',data:pts,backgroundColor:hexA(PALETTE[0],.6),pointRadius:4},
+    {type:'line',label:'เส้นอ้างอิงปกติ',data:[{x:lo,y:lo},{x:hi,y:hi}],borderColor:'#dc2626',borderWidth:2,pointRadius:0}]},
+    options:{plugins:{title:titleOpt('Normal Q-Q Plot ของ '+col.name)},
+      scales:{x:{type:'linear',title:{display:true,text:'ค่าที่สังเกตได้ (Observed Value)'}},y:{title:{display:true,text:'ค่าคาดหวังแบบปกติ (Expected Normal)'}}}}});
+}
+
+function meanBarChart(cols){
+  const st=cols.map(c=>describe(c.nums));const canvas=chartCard('ค่าเฉลี่ย ± ส่วนเบี่ยงเบนมาตรฐาน',true);
+  newChart(canvas,{type:'bar',data:{labels:cols.map(c=>c.name),datasets:[{label:'ค่าเฉลี่ย',data:st.map(s=>+s.mean.toFixed(4)),backgroundColor:cols.map((_,i)=>hexA(PALETTE[i%PALETTE.length],.8)),borderRadius:6}]},
+    options:{layout:{padding:{top:10}},plugins:{title:titleOpt('ค่าเฉลี่ย (x̄) ± ส่วนเบี่ยงเบนมาตรฐาน (S.D.)'),legend:{display:false},errorBars:{sd:st.map(s=>s.sd)},
+      valueLabels:{enabled:true,inside:true,minShow:0,fmt:v=>v.toFixed(2)},tooltip:{callbacks:{label:c=>` x̄ = ${fmt(st[c.dataIndex].mean)}, S.D. = ${fmt(st[c.dataIndex].sd)}`}}},
+      scales:{y:{beginAtZero:true,grace:'5%',suggestedMax:Math.max(...st.map(s=>s.mean+s.sd)),title:{display:true,text:'ค่าเฉลี่ย'}},x:{ticks:{autoSkip:false,maxRotation:35}}}}});
+}
+function radarChart(cols){
+  const st=cols.map(c=>describe(c.nums));const canvas=chartCard('เรดาร์ค่าเฉลี่ย',true);
+  const mn=Math.min(...st.map(s=>s.min)),mx=Math.max(...st.map(s=>s.max));
+  newChart(canvas,{type:'radar',data:{labels:cols.map(c=>c.name.length>28?c.name.slice(0,28)+'…':c.name),datasets:[{label:'ค่าเฉลี่ย',data:st.map(s=>+s.mean.toFixed(3)),backgroundColor:hexA(PALETTE[0],.25),borderColor:PALETTE[0],pointBackgroundColor:PALETTE[0],borderWidth:2}]},
+    options:{plugins:{title:titleOpt('เปรียบเทียบค่าเฉลี่ยรายตัวแปร (Radar)')},scales:{r:{suggestedMin:Math.floor(Math.min(mn,0)),suggestedMax:Math.ceil(mx),pointLabels:{font:{size:12}}}}}});
+}
+function stackedChart(cols){
+  const fqs=cols.map(freqOf);const cats=[];
+  fqs.forEach(f=>f.arr.forEach(a=>{if(!cats.some(c=>c===a.k))cats.push(a.k);}));
+  cats.sort((a,b)=>(typeof a==='number'&&typeof b==='number')?a-b:String(a).localeCompare(String(b),'th',{numeric:true}));
+  const canvas=chartCard('ร้อยละของคำตอบแต่ละระดับ (แท่งซ้อน 100%)',true);
+  const card=canvas.closest('.chart-card');card.querySelector('.cwrap').style.height=Math.max(320,90+cols.length*46)+'px';
+  newChart(canvas,{type:'bar',data:{labels:cols.map(c=>c.name),datasets:cats.map((k,i)=>({label:String(k),data:fqs.map(f=>{const a=f.arr.find(q=>q.k===k);return a?+a.p.toFixed(2):0;}),backgroundColor:PALETTE[i%PALETTE.length]}))},
+    options:{indexAxis:'y',plugins:{title:titleOpt('ร้อยละของคำตอบในแต่ละระดับ'),valueLabels:{enabled:true,inside:true,minShow:5,fmt:v=>v.toFixed(1)+'%'},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+      scales:{x:{stacked:true,max:100,title:{display:true,text:'ร้อยละ'}},y:{stacked:true}}}});
+}
+/* Box plot วาดเองบน canvas */
+function niceTicks(lo,hi,cnt){const span=hi-lo||1;const raw=span/cnt;const mag=Math.pow(10,Math.floor(Math.log10(raw)));const r=raw/mag;
+  const step=(r<=1?1:r<=2?2:r<=2.5?2.5:r<=5?5:10)*mag;const a=Math.floor(lo/step)*step,b=Math.ceil(hi/step)*step;const t=[];for(let v=a;v<=b+step/2;v+=step)t.push(+v.toFixed(10));return t;}
+function boxPlot(cols){
+  const canvas=chartCard('Box Plot',true);const wrap=canvas.parentElement;
+  const draw=()=>{
+    const W=wrap.clientWidth,H=wrap.clientHeight,dpr=2;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
+    const x=canvas.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.fillStyle='#fff';x.fillRect(0,0,W,H);
+    const st=cols.map(c=>{const s=describe(c.nums);const lf=s.q1-1.5*s.iqr,hf=s.q3+1.5*s.iqr;const inR=s.sorted.filter(v=>v>=lf&&v<=hf);
+      return{...s,wl:inR[0]??s.min,wh:inR[inR.length-1]??s.max,out:s.sorted.filter(v=>v<lf||v>hf)};});
+    const ticks=niceTicks(Math.min(...st.map(s=>s.min)),Math.max(...st.map(s=>s.max)),6);
+    const lo=ticks[0],hi=ticks[ticks.length-1];const L=60,R=W-20,T=48,B=H-(cols.length>4?80:50);
+    const Y=v=>B-(v-lo)/((hi-lo)||1)*(B-T);
+    x.fillStyle='#0f172a';x.font="600 15px Sarabun";x.textAlign='center';x.fillText('Box Plot เปรียบเทียบการกระจายของข้อมูล',W/2,24);
+    x.font="12px Sarabun";x.textAlign='right';x.textBaseline='middle';
+    ticks.forEach(t=>{x.strokeStyle='#e2e8f0';x.beginPath();x.moveTo(L,Y(t));x.lineTo(R,Y(t));x.stroke();x.fillStyle='#475569';x.fillText(+t.toFixed(4),L-8,Y(t));});
+    x.strokeStyle='#94a3b8';x.beginPath();x.moveTo(L,T-6);x.lineTo(L,B);x.lineTo(R,B);x.stroke();
+    const bw=(R-L)/cols.length;
+    st.forEach((s,i)=>{const cx=L+bw*(i+.5),hw=Math.min(36,bw*.28),col=PALETTE[i%PALETTE.length];
+      x.strokeStyle='#0f172a';x.lineWidth=1.4;
+      x.beginPath();x.moveTo(cx,Y(s.wh));x.lineTo(cx,Y(s.q3));x.moveTo(cx,Y(s.q1));x.lineTo(cx,Y(s.wl));
+      x.moveTo(cx-hw/2,Y(s.wh));x.lineTo(cx+hw/2,Y(s.wh));x.moveTo(cx-hw/2,Y(s.wl));x.lineTo(cx+hw/2,Y(s.wl));x.stroke();
+      x.fillStyle=hexA(col,.55);x.fillRect(cx-hw,Y(s.q3),hw*2,Y(s.q1)-Y(s.q3));x.strokeRect(cx-hw,Y(s.q3),hw*2,Y(s.q1)-Y(s.q3));
+      x.lineWidth=2.6;x.beginPath();x.moveTo(cx-hw,Y(s.median));x.lineTo(cx+hw,Y(s.median));x.stroke();
+      x.lineWidth=1.6;x.beginPath();const my=Y(s.mean);x.moveTo(cx-5,my-5);x.lineTo(cx+5,my+5);x.moveTo(cx+5,my-5);x.lineTo(cx-5,my+5);x.stroke();
+      s.out.forEach(v=>{x.beginPath();x.arc(cx,Y(v),3.5,0,Math.PI*2);x.fillStyle='#fff';x.fill();x.strokeStyle='#dc2626';x.stroke();});
+      x.save();x.fillStyle='#334155';x.font="12px Sarabun";const nm=cols[i].name.length>22?cols[i].name.slice(0,22)+'…':cols[i].name;
+      if(cols.length>4){x.translate(cx,B+8);x.rotate(-Math.PI/6);x.textAlign='right';x.textBaseline='top';x.fillText(nm,0,0);}
+      else{x.textAlign='center';x.textBaseline='top';x.fillText(nm,cx,B+8);}x.restore();});
+    x.font="11px Sarabun";x.fillStyle='#64748b';x.textAlign='right';x.textBaseline='alphabetic';x.fillText('━ มัธยฐาน   ✕ ค่าเฉลี่ย   ○ ค่าผิดปกติ (Outlier)',R,H-6);
+  };
+  draw();canvas._redraw=draw;
+}
+
+function renderCharts(){
+  if(typeof Chart==='undefined'){alert('ไม่สามารถโหลดไลบรารีกราฟได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');return false;}
+  const sel=selectedCols();if(!checkReady(sel))return false;
+  destroyCharts();const type=$('chartType').value;const nums=sel.filter(c=>c.isNum);
+  const needNum=['histogram','qq','boxplot','meanbar','radar'].includes(type);
+  if(needNum&&!nums.length){alert('กราฟรูปแบบนี้ต้องใช้ตัวแปรที่เป็นตัวเลข');return false;}
+  $('chartSection').classList.remove('hidden');
+  if(['bar','hbar','pie','doughnut','polarArea','line'].includes(type))sel.forEach(c=>freqChart(c,type));
+  else if(type==='histogram')nums.forEach(histogramChart);
+  else if(type==='qq')nums.filter(c=>c.nums.length>=3).forEach(qqChart);
+  else if(type==='boxplot')boxPlot(nums);
+  else if(type==='meanbar')meanBarChart(nums);
+  else if(type==='radar'){if(nums.length<3){alert('กราฟเรดาร์ต้องเลือกตัวแปรตัวเลขอย่างน้อย 3 ตัว');$('chartSection').classList.add('hidden');return false;}radarChart(nums);}
+  else if(type==='stacked')stackedChart(sel);
+  return true;
+}
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+function checkReady(sel){
+  if(!S.cols.length){alert('กรุณาแนบไฟล์ข้อมูลก่อน');return false;}
+  if(!sel.length){alert('กรุณาเลือกตัวแปรอย่างน้อย 1 ตัว');return false;}
+  return true;
+}
+function hideResults(){$('tableSection').classList.add('hidden');$('chartSection').classList.add('hidden');$('tableOutput').innerHTML='';destroyCharts();}
+const scrollTo=el=>setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),60);
+
+$('btnTable').onclick=()=>{$('chartSection').classList.add('hidden');destroyCharts();if(renderTables())scrollTo($('tableSection'));};
+$('btnChart').onclick=()=>{$('tableSection').classList.add('hidden');if(renderCharts())scrollTo($('chartSection'));};
+$('btnBoth').onclick=()=>{const a=renderTables();if(!a)return;renderCharts();scrollTo($('tableSection'));};
+$('btnReset').onclick=()=>{
+  if(!confirm('ต้องการล้างข้อมูลและเริ่มต้นใหม่ทั้งหมดหรือไม่?'))return;
+  S.wb=null;S.cols=[];S.nRows=0;S.fileName='';fileInput.value='';
+  $('sheetWrap').classList.add('hidden');$('sheetSelect').innerHTML='';$('fileInfo').textContent='';
+  $('previewWrap').classList.add('hidden');$('previewWrap').innerHTML='';
+  $('varList').innerHTML='<span class="info">ยังไม่มีข้อมูล — กรุณาแนบไฟล์ก่อน</span>';
+  $('tableMode').value='freq';$('chartType').value='bar';$('decimals').value='2';$('scaleLevels').value='5';
+  buildScaleInputs(false);$('scaleBox').classList.add('hidden');hideResults();
+  window.scrollTo({top:0,behavior:'smooth'});toast('รีเซ็ตเรียบร้อยแล้ว');
+};
+
+/* Download Word (.doc) */
+$('dlWord').onclick=()=>{
+  const clone=$('tableOutput').cloneNode(true);
+  clone.querySelectorAll('[contenteditable]').forEach(e=>e.removeAttribute('contenteditable'));
+  clone.querySelectorAll('.tbl-wrap').forEach(w=>w.replaceWith(...w.childNodes));
+  const modeTxt=$('tableMode').selectedOptions[0].textContent;
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>ผลการวิเคราะห์ข้อมูลเชิงพรรณนา</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+@page{size:21cm 29.7cm;margin:2.54cm 2.54cm 2.54cm 3.81cm}
+body{font-family:"TH SarabunPSK","TH Sarabun New",Sarabun,sans-serif;font-size:16pt}
+h1{font-size:20pt;text-align:center}
+p{margin:6pt 0}
+.caption{font-size:16pt;margin-top:14pt}
+table{border-collapse:collapse;width:100%;margin:4pt 0}
+th,td{border:1px solid #000;padding:2pt 5pt;font-size:14pt;text-align:center;vertical-align:middle}
+th{background:#f2f2f2;font-weight:bold}
+td.l,th.l{text-align:left}
+tr.tot td{font-weight:bold}
+.desc{text-indent:1.27cm;text-align:justify;margin-top:6pt;font-size:16pt}
+.note{font-size:13pt;color:#333}
+</style></head><body>
+<h1>ผลการวิเคราะห์ข้อมูลเชิงพรรณนา</h1>
+<p class="note">ไฟล์ข้อมูล: ${esc(S.fileName||'-')} &nbsp;|&nbsp; รูปแบบ: ${esc(modeTxt)} &nbsp;|&nbsp; วันที่: ${new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})}</p>
+${clone.innerHTML}</body></html>`;
+  const blob=new Blob(['\ufeff',html],{type:'application/msword'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`ผลวิเคราะห์_${(S.fileName||'data').replace(/[\\/:*?"<>|]/g,'_')}.doc`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  toast('ดาวน์โหลดไฟล์ Word แล้ว');
+};
+/* Download all PNG */
+$('dlAllPng').onclick=()=>{
+  const cards=[...document.querySelectorAll('#chartOutput .chart-card')];
+  cards.forEach((c,i)=>setTimeout(()=>downloadPNG(c.querySelector('canvas'),c.dataset.title),i*350));
+  toast(`กำลังดาวน์โหลด ${cards.length} กราฟ`);
+};
+/* redraw boxplot on resize */
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>document.querySelectorAll('#chartOutput canvas').forEach(c=>c._redraw&&c._redraw()),200);});
+</script>
+</body>
+</html>
